@@ -41,7 +41,8 @@ public class Main extends Application {
 	 */
 	public static String removePunct(String source) {
 		source = source.replaceAll("\\p{Punct}", "").trim();
-		source = source.replaceAll("\\W", " ");
+		source = source.replaceAll("\\W", " ").trim();
+		source = source.replaceAll("  ", " ");
 		return source;
 	}
 
@@ -59,7 +60,7 @@ public class Main extends Application {
 
 			Document doc = Jsoup.parse(new File(path));
 			Elements h1 = doc.getElementsByTag("h1");
-			Elements h2 = doc.getElementsByClass("no-break");
+			Elements h2 = doc.getElementsByTag("h2");
 			Elements divTag = doc.getElementsByClass("chapter");
 
 			v.title = h1.text();
