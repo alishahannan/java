@@ -12,6 +12,12 @@ import org.junit.jupiter.api.Test;
 
 import application.Main;
 
+/**
+ * Class to test the sortCount method from the Main.java file.
+ * 
+ * @see <a href=
+ *      "https://junit.org/junit5/docs/current/api/org.junit.jupiter.api/org/junit/jupiter/api/Test.html">Test</a>
+ */
 class sortCountTest {
 
 	@Test
@@ -41,7 +47,5 @@ class sortCountTest {
 		List<Entry<String, Integer>> output = test.sortCount(testCase);
 
 		assertEquals(expected, output);
-
 	}
-
 }
