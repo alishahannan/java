@@ -1,6 +1,6 @@
 /**
  * @author Alisha Hannan
- * @version 2.3
+ * @version 2.4
  * @since 1.0
  * CEN 3024C
  * Program to count occurrences of words in a poem file, after 
@@ -9,34 +9,21 @@
  */
 package application;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Scanner;
+import java.io.*;
+import java.sql.*;
+import java.util.*;
+import java.util.Map.*;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import javafx.application.Application;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+import javafx.event.*;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ListView;
+import javafx.scene.control.*;
 import javafx.scene.layout.Pane;
-import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
+import javafx.scene.text.*;
 import javafx.stage.Stage;
 
 /**
@@ -92,7 +79,7 @@ public class Main extends Application {
 	 * 
 	 * @param source String source to be formatted
 	 * @return Formatted source String after replacing punctuation, non-word
-	 *         characters, and double spaces	  
+	 *         characters, and double spaces
 	 */
 	public static String removePunct(String source) {
 		source = source.replaceAll("\\p{Punct}", "").trim();
@@ -113,8 +100,9 @@ public class Main extends Application {
 	 * @param path String to the file that is to be formatted
 	 * @return Formatted String with only the text contained in the h1, h2, and
 	 *         chapter sections of a given documented
-	 *         
-	 * @see <a href="https://jsoup.org/apidocs/org/jsoup/parser/package-summary.html">parse</a>
+	 * 
+	 * @see <a href=
+	 *      "https://jsoup.org/apidocs/org/jsoup/parser/package-summary.html">parse</a>
 	 */
 	public static String makeDoc(String path) {
 
@@ -156,7 +144,6 @@ public class Main extends Application {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 		return words;
 	}
 
@@ -178,6 +165,7 @@ public class Main extends Application {
 	 */
 	public static HashMap<String, Integer> wordCount(List<String> data, HashMap<String, Integer> occur) {
 
+		// need to add insert term here//
 		for (String line : data) {
 			Scanner scan = new Scanner(line);
 			while (scan.hasNext()) {
@@ -192,6 +180,36 @@ public class Main extends Application {
 			scan.close();
 		}
 		return occur;
+	}
+
+	/**
+	 * Takes in a HashMap, iterates through the entries of the HashMap to insert the
+	 * entries into a connected database. The database is updated until all entries
+	 * of the HashMap have been iterated through.
+	 * 
+	 * @param hashMap HashMap of String keys and Integer values, showing the
+	 *                occurrence amount for each word.
+	 * @throws Exception
+	 */
+	public static void post(HashMap<String, Integer> hashMap) throws Exception {
+		String var1 = null;
+		int var2 = 0;
+
+		for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
+			var1 = entry.getKey();
+			var2 = entry.getValue();
+
+			try {
+				Connection con = getConnection();
+				PreparedStatement posted = con
+						.prepareStatement("INSERT INTO words (word,freq) VALUES ('" + var1 + "','" + var2 + "')");
+				posted.executeUpdate();
+			} catch (Exception e) {
+				System.out.println(e);
+			} finally {
+				System.out.println("Insert Completed.");
+			}
+		}
 	}
 
 	/**
@@ -230,15 +248,17 @@ public class Main extends Application {
 	 * <p>
 	 * The show button's event handler uses variables from the v class. It sets the
 	 * text for the header Text using the author and title variables, and adds items
-	 * to the ListView list from the occurList. The clear button sets the header
-	 * back to blank, and clears the list.
+	 * to the ListView list from the occurList or through the get method's returned
+	 * array. The clear button sets the header back to blank, and clears the list.
 	 * 
 	 * @see Stage
 	 */
 	@Override
-	public void start(Stage primaryStage) {
+	public void start(Stage primaryStage) throws Exception {
 
 		v.occurList = sortCount(wordCount(separate(makeDoc(v.path)), v.wordMap));
+		createTable();
+		post(v.wordMap);
 
 		try {
 
@@ -287,10 +307,20 @@ public class Main extends Application {
 				public void handle(ActionEvent e) {
 					header.setText(v.title + "\n" + v.author);
 
-					for (int i = 0; i < 20; i++) {
-						list.getItems().add((i + 1) + ": " + (v.occurList.get(i)).getKey() + " occurs "
-								+ (v.occurList.get(i)).getValue() + " times");
+					try {
+						ArrayList<String> show = get();
+						for (String value : show) {
+							list.getItems().add(value);
+						}
+					} catch (Exception e1) {
+						e1.printStackTrace();
 					}
+
+					/*
+					 * //for use of the original occurList for (int i = 0; i < 20; i++) {
+					 * list.getItems().add((i + 1) + ": " + (v.occurList.get(i)).getKey() +
+					 * " occurs " + (v.occurList.get(i)).getValue() + " times"); }
+					 */
 				}
 			};
 
@@ -306,8 +336,8 @@ public class Main extends Application {
 			clear.setOnAction(reset);
 
 			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
-			primaryStage.setScene(scene); // use scene for window
-			primaryStage.show(); // displays window to the user
+			primaryStage.setScene(scene);
+			primaryStage.show();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -318,7 +348,89 @@ public class Main extends Application {
 	 * 
 	 * @param args actions contained in the Main class
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		launch(args);
+	}
+
+	/**
+	 * Connects to a database, and prepares a statement to select column information
+	 * to view, sorted descending by the freq column and limited to the top 20 items
+	 * in the database. After executing the query, the results of the query or
+	 * iterated through, using each set of values to fill the ArrayList of the
+	 * method with String values using the table information.
+	 * 
+	 * @return an array of strings based on the selection of the database.
+	 * @throws Exception
+	 */
+	public static ArrayList<String> get() throws Exception {
+		try {
+			Connection con = getConnection();
+			PreparedStatement statement = con
+					.prepareStatement("SELECT word,freq FROM words ORDER BY freq DESC limit 20");
+
+			ResultSet result = statement.executeQuery();
+			int i = 1;
+			ArrayList<String> array = new ArrayList<String>();
+			while (result.next()) {
+
+				array.add((i + "- " + result.getString("word")) + " occurs " + (result.getInt("freq")) + " times");
+				i++;
+			}
+			System.out.println("All records have been selected!");
+
+			return array;
+		} catch (Exception e) {
+			System.out.println(e);
+		}
+		return null;
+	}
+
+	/**
+	 * Connects to a database, and prepares a statement to create a table for the
+	 * database if one doesn't exist, with word column as the primary key and freq
+	 * column. Executes an update to the database, printing a message to show the
+	 * function was completed.
+	 * 
+	 * @throws Exception
+	 */
+	public static void createTable() throws Exception {
+		try {
+			Connection con = getConnection();
+			PreparedStatement create = con.prepareStatement(
+					"CREATE TABLE IF NOT EXISTS words(word VARCHAR(40) NOT NULL, freq INT NOT NULL, PRIMARY KEY(word)");
+			create.executeUpdate();
+
+		} catch (Exception e) {
+			System.out.println(e);
+		} finally {
+			System.out.println("Function complete.");
+		}
+		;
+	}
+
+	/**
+	 * Establishes connection to a local database using provided driver, url,
+	 * username and password for the database.
+	 * 
+	 * @return the established connection, allowing access to modify or view conent.
+	 * @throws Exception
+	 */
+	public static Connection getConnection() throws Exception {
+		try {
+			String driver = "com.mysql.jdbc.Driver";
+			String url = "jdbc:mysql://localhost:3306/word_occurrences";
+			String username = "tempUser";
+			String password = "apass";
+			Class.forName(driver);
+
+			Connection conn = DriverManager.getConnection(url, username, password);
+			System.out.println("Connected");
+			return conn;
+
+		} catch (Exception e) {
+			System.out.println(e);
+
+			return null;
+		}
 	}
 }
