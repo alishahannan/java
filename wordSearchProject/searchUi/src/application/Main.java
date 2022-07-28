@@ -412,7 +412,7 @@ public class Main extends Application {
 	 * Establishes connection to a local database using provided driver, url,
 	 * username and password for the database.
 	 * 
-	 * @return the established connection, allowing access to modify or view conent.
+	 * @return the established connection, allowing access to modify or view content.
 	 * @throws Exception
 	 */
 	public static Connection getConnection() throws Exception {
